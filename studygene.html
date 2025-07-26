@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edwisely StudyGenie AI Demo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for better content flow */
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .main-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            max-width: 1000px;
+            width: 100%;
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr; /* Single column on small screens */
+        }
+        @media (min-width: 768px) { /* Two columns on medium screens and up */
+            .main-container {
+                grid-template-columns: 2fr 1fr; /* Chat wider than info panel */
+            }
+        }
+        .chat-container, .info-panel {
+            border-radius: 1rem;
+            padding: 1.5rem;
+            background-color: #f8fafc; /* Light background for panels */
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .message {
+            max-width: 85%;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            line-height: 1.5;
+        }
+        .user-message {
+            background-color: #6366f1; /* Indigo-500 */
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .ai-message {
+            background-color: #e0e7ff; /* Indigo-100 */
+            color: #1e293b; /* Slate-800 */
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .chat-input {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .chat-input:focus {
+            border-color: #6366f1;
+        }
+        .btn-send {
+            background-color: #6366f1;
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            border: none;
+        }
+        .btn-send:hover {
+            background-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+        .btn-scenario {
+            background-color: #3b82f6; /* Blue-500 */
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            border: none;
+            width: 100%;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-scenario:hover {
+            background-color: #2563eb; /* Blue-600 */
+            transform: translateY(-1px);
+        }
+        .info-box {
+            background-color: #eff6ff; /* Blue-50 */
+            border: 1px solid #bfdbfe; /* Blue-200 */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #1e3a8a; /* Blue-900 */
+            line-height: 1.5;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-send .loading-spinner {
+            border-top: 4px solid #6366f1; /* Match button color */
+            border: 4px solid rgba(99, 102, 241, 0.3);
+        }
+        .btn-send.loading .loading-spinner {
+            display: inline-block;
+        }
+        .btn-send.loading span {
+            display: none;
+        }
+        .scenario-buttons-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Chat Interface -->
+        <div class="chat-container flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">💬 StudyGenie AI Chat</h2>
+            <div id="chatMessages" class="chat-messages">
+                <div class="ai-message message">
+                    Hi there! I'm StudyGenie, your personal learning companion. Ask me anything about your engineering subjects, or try simulating a study plan!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Type your question here...">
+                <button id="sendButton" class="btn-send">
+                    <span class="text-white">Send</span>
+                    <div class="loading-spinner"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Info Panel / Scenario Triggers -->
+        <div class="info-panel flex flex-col">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">🚀 Simulate StudyGenie Features</h2>
+            <p class="text-gray-600 mb-4 text-center">Click a button to see StudyGenie in action!</p>
+
+            <div class="scenario-buttons-group">
+                <button id="scenario1Btn" class="btn-scenario">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span>Knowledge Gap: B+ Trees</span>
+                </button>
+                <button id="scenario2Btn" class="btn-scenario">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 13v-1m4 1v-1m4 1v-1M3 21h18M5 10V6a2 2 0 012-2h10a2 2 0 012 2v4M3 21v-4a2 2 0 012-2h14a2 2 0 012 2v4M4 10h16v4H4V10z"></path></svg>
+                    <span>Study Plan: SQL Joins</span>
+                </button>
+                <button id="scenario3Btn" class="btn-scenario">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                    <span>Adaptive Explanation: Normalization</span>
+                </button>
+            </div>
+
+            <div id="infoBox" class="info-box mt-6">
+                <h3 class="font-semibold text-blue-900 mb-2">StudyGenie Insights:</h3>
+                <p id="infoContent">Click a scenario button above to see how StudyGenie adapts and plans!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const infoContent = document.getElementById('infoContent');
+
+        // Scenario buttons
+        const scenario1Btn = document.getElementById('scenario1Btn');
+        const scenario2Btn = document.getElementById('scenario2Btn');
+        const scenario3Btn = document.getElementById('scenario3Btn');
+
+        // Chat history for context (client-side only for this demo)
+        let chatHistory = [{ role: "model", parts: [{ text: "Hi there! I'm StudyGenie, your personal learning companion. Ask me anything about your engineering subjects, or try simulating a study plan!" }] }];
+
+        // Function to add messages to the chat UI
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+        }
+
+        // Function to call the Gemini API
+        async function callGeminiAPI(prompt, isChat = true) {
+            sendButton.classList.add('loading'); // Show loading spinner
+            sendButton.disabled = true; // Disable button
+
+            try {
+                let currentChatHistory = [...chatHistory]; // Copy current history for this request
+
+                if (!isChat) {
+                    // If it's a scenario, clear chat history for a fresh context for the scenario prompt
+                    // and just send the scenario prompt.
+                    currentChatHistory = [];
+                }
+
+                currentChatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                const payload = { contents: currentChatHistory };
+                const apiKey = ""; // Canvas will automatically provide the API key for gemini-2.0-flash
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    if (isChat) {
+                        chatHistory.push({ role: "model", parts: [{ text: text }] }); // Add AI response to history
+                        addMessage('ai', text);
+                    } else {
+                        infoContent.textContent = text; // Display in info panel for scenarios
+                    }
+                } else {
+                    const errorMsg = "StudyGenie couldn't generate a response. Please try again.";
+                    if (isChat) {
+                         addMessage('ai', errorMsg);
+                    } else {
+                        infoContent.textContent = errorMsg;
+                    }
+                    console.error("Unexpected API response structure:", result);
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                const errorMsg = `StudyGenie encountered an error: ${error.message}. Please try again.`;
+                if (isChat) {
+                    addMessage('ai', errorMsg);
+                } else {
+                    infoContent.textContent = errorMsg;
+                }
+            } finally {
+                sendButton.classList.remove('loading'); // Hide loading spinner
+                sendButton.disabled = false; // Enable button
+            }
+        }
+
+        // Event listener for sending chat messages
+        sendButton.addEventListener('click', async () => {
+            const userText = chatInput.value.trim();
+            if (userText) {
+                addMessage('user', userText);
+                chatInput.value = ''; // Clear input
+                await callGeminiAPI(userText, true);
+            }
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        // --- Scenario Buttons Logic ---
+
+        scenario1Btn.addEventListener('click', async () => {
+            infoContent.textContent = "Analyzing your performance on B+ Trees...";
+            // Simulate a "knowledge gap" scenario
+            const scenarioPrompt = `
+                Simulate a Knowledge Gap Detection scenario for an engineering student.
+                The student struggled with questions about B+ trees, but understands basic tree structures well.
+                Identify the specific gap (e.g., how B+ trees handle overflow during insertion).
+                Then, generate a personalized study plan to bridge this gap efficiently.
+                The plan should include:
+                1. Review of tree balancing concepts (e.g., 10 min) - building on what they know.
+                2. An interactive B+ tree insertion simulator (e.g., 20 min).
+                3. Practice problems with step-by-step solutions (e.g., 15 min).
+                Format the response clearly as "Knowledge Gap Identified:" followed by the gap, and then "Personalized Study Plan:" with bullet points.
+            `;
+            await callGeminiAPI(scenarioPrompt, false); // Not a chat message, display in info panel
+        });
+
+        scenario2Btn.addEventListener('click', async () => {
+            infoContent.textContent = "Adjusting study plan for SQL Joins...";
+            // Simulate a "study plan adaptation" scenario
+            const scenarioPrompt = `
+                Simulate a Study Plan Adaptation scenario for an engineering student.
+                The student has consistently scored low on SQL joins.
+                Generate an adapted study plan.
+                The plan should break down SQL joins into smaller, manageable parts:
+                - Day 1: Visual join diagrams + Simple inner joins practice.
+                - Day 2: Left/Right joins with real examples + practice.
+                - Day 3: Complex multi-table joins.
+                Mention scheduling micro-quizzes.
+                Format the response clearly as "Study Plan Adaptation for SQL Joins:" followed by the adapted plan with daily breakdowns.
+            `;
+            await callGeminiAPI(scenarioPrompt, false);
+        });
+
+        scenario3Btn.addEventListener('click', async () => {
+            infoContent.textContent = "Generating adaptive explanation for Normalization...";
+            // Simulate an "adaptive explanation" scenario (visual learner, struggling with abstract)
+            const scenarioPrompt = `
+                Simulate an Adaptive Explanation scenario for an engineering student who is a visual learner and struggles with abstract concepts.
+                The student asked: "What is database normalization?"
+                Explain database normalization using a familiar analogy (like organizing phone contacts) and describe how it removes redundancy.
+                Include a simple, text-based visual example of a student database table (e.g., StudentID, Name, Course, Department) that shows redundancy, and then ask a follow-up question to engage them.
+                Format the response as if StudyGenie is speaking directly to the student.
+            `;
+            await callGeminiAPI(scenarioPrompt, false);
+        });
+    </script>
+</body>
+</html>
